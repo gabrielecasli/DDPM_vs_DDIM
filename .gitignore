@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# Data and generated outputs (tracked by git-lfs or excluded entirely)
+data/
+results/samples/
+results/figures/
+
+# Model cache
+~/.cache/huggingface/
+
+# Downloaded model weights (auto-fetched at runtime; not committed to git)
+weights/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
