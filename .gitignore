@@ -18,7 +18,6 @@ env/
 # Data and generated outputs (tracked by git-lfs or excluded entirely)
 data/
 results/samples/
-results/figures/
 
 # Model cache
 ~/.cache/huggingface/

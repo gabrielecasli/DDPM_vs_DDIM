@@ -1,0 +1,20 @@
+dataset: church
+model_id: google/ddpm-ema-church-256
+image_size: 256
+channels: 3
+num_train_timesteps: 1000
+beta_schedule: linear
+beta_start: 0.0001
+beta_end: 0.02
+sampling:
+  num_samples_fid: 2000
+  batch_size: 16
+  dtype: float16
+  eta_grid: [0.0, 1.0]
+  nfe_grid: [20, 50]
+  tau_kind: uniform
+fid:
+  mode: legacy_pytorch
+  reference: lsun_church
+  split: train
+seed: 42
