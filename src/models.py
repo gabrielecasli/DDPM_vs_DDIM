@@ -11,6 +11,7 @@ Supported model IDs / shorthands
              weights/ddpm_ema_cifar10/.
 "church"   → google/ddpm-ema-church-256   (LSUN Church 256×256)
 "bedroom"  → google/ddpm-ema-bedroom-256  (LSUN Bedroom 256×256)
+"celebahq" → google/ddpm-celebahq-256     (CalebA 256×256)
 
 Direct Hugging Face model IDs are also accepted.
 
@@ -53,14 +54,6 @@ _CIFAR10_EMA_KEY = "local:ddpm-ema-cifar10"
 
 def _ensure_cifar10_ema() -> Path:
     """Return the local path to the CIFAR-10 EMA checkpoint, downloading if absent.
-
-    The checkpoint is stored in weights/ddpm_ema_cifar10/ (pipeline format):
-      unet/config.json
-      unet/diffusion_pytorch_model.bin
-      model_index.json
-
-    The zip from VainF/Diff-Pruning contains a single top-level directory
-    'ddpm_ema_cifar10/' which is stripped on extraction.
     """
     ready = _CIFAR10_EMA_DIR / "unet" / "diffusion_pytorch_model.bin"
     if ready.exists():
@@ -99,10 +92,12 @@ _MODEL_REGISTRY: dict[str, tuple[str, str | None]] = {
     "cifar10":                      (_CIFAR10_EMA_KEY, "unet"),
     "church":                       ("google/ddpm-ema-church-256", None),
     "bedroom":                      ("google/ddpm-ema-bedroom-256", None),
+    "celebahq":                     ("google/ddpm-celebahq-256", None),
     # Direct HF IDs
     "google/ddpm-ema-church-256":   ("google/ddpm-ema-church-256", None),
     "google/ddpm-ema-bedroom-256":  ("google/ddpm-ema-bedroom-256", None),
     "google/ddpm-cifar10":          ("google/ddpm-cifar10", None),
+    "google/ddpm-celebahq-256":     ("google/ddpm-celebahq-256", None),
 }
 
 
@@ -160,9 +155,8 @@ def load_model(
             (x_t.shape[0],), t, device=x_t.device, dtype=torch.long
         )
         with torch.no_grad():
-            out = unet(x_t, t_batch)
+            out = unet(x_t.to(dtype=dtype), t_batch)
         return out.sample
-
     return eps_fn, unet
 
 
@@ -180,5 +174,5 @@ class EpsFnWrapper:
             (x_t.shape[0],), t, device=x_t.device, dtype=torch.long
         )
         with torch.no_grad():
-            out = self.unet(x_t, t_batch)
+            out = self.unet(x_t.to(dtype=self.dtype), t_batch)
         return out.sample

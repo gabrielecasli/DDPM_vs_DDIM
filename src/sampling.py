@@ -30,6 +30,8 @@ def sample(
     shape: tuple[int, ...],
     num_steps: int,
     tau_kind: str = "uniform",
+    exponent: float = None,
+    final_ratio: float = 0.8,
     eta: float = 0.0,
     seed: int = 42,
     sampling_seed: int | None = None,
@@ -38,53 +40,15 @@ def sample(
     dtype: torch.dtype = torch.float32,
     T: int = 1000,
 ) -> tuple[Tensor, float]:
-    """Generate samples using a DDIMScheduler (supports any η ∈ [0, 1]).
-
-    Parameters
-    ----------
-    eps_fn : callable
-        Model: (x_t: Tensor, t: int) -> ε_θ(x_t, t).
-    scheduler : DDIMScheduler
-        Will have its eta updated to `eta` before sampling.
-    shape : tuple
-        (B, C, H, W) - shape of the noise tensor.
-    num_steps : int
-        Number of denoising steps S (= NFE for DDIM/Euler).
-    tau_kind : str
-        "uniform" or "quadratic".
-    eta : float
-        Stochasticity coefficient. Forwarded to scheduler.
-    seed : int
-        Random seed for x_T initialisation.
-    sampling_seed : int or None
-        Random seed for the stochastic denoising steps (η > 0).
-        If None, reuses `seed` - same behaviour as before.
-    device : torch.device or str
-    dtype : torch.dtype
-    T : int
-        Total training timesteps.
-
-    Returns
-    -------
-    x_0 : Tensor
-        Generated samples, shape (B, C, H, W).
-    elapsed_ms : float
-        Wall-clock time in milliseconds (GPU-accurate when CUDA available).
-
-    Notes
-    -----
-    τ subset: Song et al. 2020, Appendix D.
-    Step formula: Song et al. 2020, Eq. 12 (via DDIMScheduler).
-    """
     device = torch.device(device)
-    scheduler.set_eta(eta)
-
+    """Generate samples using a DDIMScheduler (supports any η ∈ [0, 1])"""
     init_gen = torch.Generator(device=device).manual_seed(seed)
-    x = torch.randn(shape, device=device, dtype=dtype, generator=init_gen)    # X_T
+    x_T = torch.randn(shape, device=device, dtype=dtype, generator=init_gen)
 
-    step_gen = torch.Generator(device=device).manual_seed(seed if sampling_seed is None else sampling_seed)
-
-    tau = make_tau(T, num_steps, tau_kind)   # ascending indices, shape (S,)
+    step_gen = torch.Generator(device=device).manual_seed(
+        seed if sampling_seed is None else sampling_seed
+    )
+    tau = make_tau(T, num_steps, tau_kind, exponent=exponent, final_ratio=final_ratio)
 
     if device.type == "cuda":
         start_ev = torch.cuda.Event(enable_timing=True)
@@ -94,12 +58,16 @@ def sample(
     else:
         t0 = time.perf_counter()
 
-    with torch.no_grad():
-        for i in reversed(range(len(tau))):        # τ_S → τ_0
-            t = int(tau[i])
-            t_prev = int(tau[i - 1]) if i > 0 else -1
-            eps = eps_fn(x, t)
-            x = scheduler.step(eps, x, t, t_prev, generator=step_gen, clip_sample=clip_sample)
+    x_0 = denoise_steps(
+        eps_fn=eps_fn,
+        scheduler=scheduler,
+        x_start=x_T,
+        tau=tau,
+        eta=eta,
+        clip_sample=clip_sample,
+        store_intermediates=False,
+        generator=step_gen,
+    )
 
     if device.type == "cuda":
         end_ev.record()
@@ -108,7 +76,47 @@ def sample(
     else:
         elapsed_ms = (time.perf_counter() - t0) * 1e3
 
-    return x, elapsed_ms
+    return x_0, elapsed_ms
+
+
+def denoise_steps(
+    eps_fn: Callable[[Tensor, int], Tensor],
+    scheduler: DDIMScheduler,
+    x_start: Tensor,
+    tau,
+    eta: float = 0.0,
+    seed: int = 42,
+    clip_sample: bool = True,
+    store_intermediates: bool = True,
+    generator: torch.Generator | None = None,
+) -> list[tuple[int, Tensor]] | Tensor:
+    """Run the reverse process from x_start.
+
+    If `store_intermediates` is True (default) returns the list of (t, x).
+    If False, returns only the final (more efficient).
+    """
+    scheduler.set_eta(eta)
+    if generator is None:
+        generator = torch.Generator(device=x_start.device).manual_seed(seed)
+
+    x = x_start.clone() if store_intermediates else x_start
+
+    steps: list[tuple[int, Tensor]] | None = None
+    if store_intermediates:
+        steps = [(int(tau[-1]), x.detach().clone())]
+
+    with torch.no_grad():
+        for i in reversed(range(len(tau))):
+            t = int(tau[i])
+            t_prev = int(tau[i - 1]) if i > 0 else -1
+            x = scheduler.step(
+                eps_fn(x, t), x, t, t_prev,
+                generator=generator, clip_sample=clip_sample,
+            )
+            if store_intermediates:
+                steps.append((t_prev if t_prev >= 0 else 0, x.detach().clone()))
+
+    return steps if store_intermediates else x
 
 
 def sample_with_solver(

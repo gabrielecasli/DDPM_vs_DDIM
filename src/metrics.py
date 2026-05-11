@@ -33,30 +33,7 @@ def compute_fid(
     dataset_res: int = 32,
     device: torch.device | str | None = None,
 ) -> float:
-    """Compute FID between a folder of generated images and a reference dataset.
-
-    Parameters
-    ----------
-    folder_generated : str
-        Path to a folder containing PNG/JPEG images of generated samples.
-    dataset_name : str
-        clean-fid dataset key ("cifar10", "ffhq", …).
-    split : str
-        Dataset split for the reference statistics ("train" or "test").
-    mode : str
-        Resize mode. Use "legacy_pytorch" for DDIM-paper compatibility;
-    dataset_res : int
-        Spatial resolution of the reference statistics to load.
-    device : torch.device or str or None
-        Device for Inception features. Defaults to CUDA if available.
-
-    Returns
-    -------
-    float
-        Fréchet Inception Distance (lower is better).
-
-    Notes
-    -----
+    """Compute Fréchet Inception Distance (lower is better) between a folder of generated PNG/JPEG images and a reference dataset.
     The precomputed reference stats are downloaded automatically on first use.
     """
     try:
@@ -150,24 +127,6 @@ def time_sampling(
     device: torch.device | str | None = None,
 ) -> tuple[float, float]:
     """Measure wall-clock time of a sampling function using CUDA events.
-
-    Parameters
-    ----------
-    fn : callable
-        Zero-argument function wrapping a sampling call (e.g. lambda).
-    n_warmup : int
-        Number of warm-up calls (not measured). JIT / cache warm-up.
-    n_runs : int
-        Number of timed calls.
-    device : torch.device or str or None
-        CUDA device for Event timing. Falls back to perf_counter on CPU.
-
-    Returns
-    -------
-    mean_ms : float
-        Mean elapsed time in milliseconds.
-    std_ms : float
-        Standard deviation in milliseconds.
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
