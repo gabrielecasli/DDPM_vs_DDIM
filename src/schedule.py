@@ -8,7 +8,7 @@ with α_t = ∏_{s=1}^{t} (1 − β_s).
 The variance schedule β_1, …, β_T is either linear (Ho et al. 2020)
 or cosine (Nichol & Dhariwal 2021). Only "linear" is required here.
 
-Tau-subset selection follows Song et al. 2020 (DDIM), Appendix C:
+Tau-subset selection follows Song et al. 2020 (DDIM), Appendix D:
   - uniform:   τ_i = floor(T / S * i),  i = 0, …, S−1
   - quadratic: τ_i = (linspace(0, sqrt(T*0.8), S)[i])^2
     (denser steps near t=0 where the signal changes fastest).
@@ -39,9 +39,9 @@ def make_beta_schedule(
     T : int
         Total number of diffusion timesteps.
     beta_start : float
-        β_1 — first (smallest) noise level. Default 1e-4 (Ho et al. 2020).
+        β_1 - first (smallest) noise level. Default 1e-4 (Ho et al. 2020).
     beta_end : float
-        β_T — last (largest) noise level. Default 0.02 (Ho et al. 2020).
+        β_T - last (largest) noise level. Default 0.02 (Ho et al. 2020).
 
     Returns
     -------
@@ -69,9 +69,9 @@ def compute_alphas(betas: Tensor) -> tuple[Tensor, Tensor]:
     Returns
     -------
     alphas_ddpm : Tensor
-        Shape (T,). α_t = 1 − β_t.
+        Shape (T,). ᾱ_t_ddpm = 1 − β_t.
     alphas : Tensor
-        Shape (T,). ᾱ_t = ∏_{s=1}^{t} α_s  (cumulative product).
+        Shape (T,). α_t = ∏_{s=1}^{t} ᾱ_t_ddpm  (cumulative product).
 
     Notes
     -----
@@ -102,16 +102,16 @@ def make_tau(T: int, S: int, kind: str = "uniform") -> np.ndarray:
     Notes
     -----
     Song et al. 2020 (DDIM), Appendix D:
-      uniform:   τ_i = i · ⌊T/S⌋  — equispaced in t-space.
+      uniform:   τ_i = i · ⌊T/S⌋  - equispaced in t-space.
       quadratic: τ_i = (linspace(0, sqrt(T*0.8), S)[i])^2   
-                 — denser near t=0 (finer steps when SNR is high).
-    Implementation matches ermongroup/ddim (runners/diffusion.py).
+                 - denser near t=0 (finer steps when SNR is high).
+    Implementation choices match ermongroup/ddim (runners/diffusion.py).
     """
     if kind == "uniform":
-        tau = np.linspace(0, T - 1, S).astype(int)
-        # skip = T // S
-        # tau = np.arange(0, T, skip)
-        # tau = tau[:S]
+        # tau = np.linspace(0, T - 1, S).astype(int)
+        skip = T // S
+        tau = np.arange(0, T, skip)
+        tau = tau[:S]
     elif kind == "quadratic":
         tau = (np.linspace(0, np.sqrt(T * 0.8), S) ** 2).astype(int)
     else:

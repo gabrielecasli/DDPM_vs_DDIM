@@ -2,8 +2,8 @@
 Generic sampling loops for DDIM/DDPM and alternative ODE solvers.
 
 Two entry points:
-  - `sample`              — uses a DDIMScheduler (supports any η ∈ [0, 1]).
-  - `sample_with_solver`  — uses a pure step function from solvers.py (η=0).
+  - `sample`              - uses a DDIMScheduler (supports any η ∈ [0, 1]).
+  - `sample_with_solver`  - uses a pure step function from solvers.py (η=0).
 
 Timing uses torch.cuda.Event for accurate GPU wall-clock measurement,
 with CPU fallback via time.perf_counter.
@@ -11,7 +11,7 @@ with CPU fallback via time.perf_counter.
 References
 ----------
 Song et al. 2020, "Denoising Diffusion Implicit Models", ICLR 2021.
-Song et al. 2020, Appendix C — τ subset construction.
+Song et al. 2020, Appendix D - τ subset construction.
 """
 
 import time
@@ -33,6 +33,7 @@ def sample(
     eta: float = 0.0,
     seed: int = 42,
     sampling_seed: int | None = None,
+    clip_sample: bool = False,
     device: torch.device | str = "cpu",
     dtype: torch.dtype = torch.float32,
     T: int = 1000,
@@ -46,7 +47,7 @@ def sample(
     scheduler : DDIMScheduler
         Will have its eta updated to `eta` before sampling.
     shape : tuple
-        (B, C, H, W) — shape of the noise tensor.
+        (B, C, H, W) - shape of the noise tensor.
     num_steps : int
         Number of denoising steps S (= NFE for DDIM/Euler).
     tau_kind : str
@@ -57,10 +58,7 @@ def sample(
         Random seed for x_T initialisation.
     sampling_seed : int or None
         Random seed for the stochastic denoising steps (η > 0).
-        If None, reuses `seed` — same behaviour as before.
-        Separating the two seeds lets you fix x_T while varying the
-        per-step noise, which is the correct way to demonstrate that
-        DDIM (η=0) is deterministic while DDPM (η=1) is stochastic.
+        If None, reuses `seed` - same behaviour as before.
     device : torch.device or str
     dtype : torch.dtype
     T : int
@@ -75,7 +73,7 @@ def sample(
 
     Notes
     -----
-    τ subset: Song et al. 2020, Appendix C.
+    τ subset: Song et al. 2020, Appendix D.
     Step formula: Song et al. 2020, Eq. 12 (via DDIMScheduler).
     """
     device = torch.device(device)
@@ -101,7 +99,7 @@ def sample(
             t = int(tau[i])
             t_prev = int(tau[i - 1]) if i > 0 else -1
             eps = eps_fn(x, t)
-            x = scheduler.step(eps, x, t, t_prev, generator=step_gen)
+            x = scheduler.step(eps, x, t, t_prev, generator=step_gen, clip_sample=clip_sample)
 
     if device.type == "cuda":
         end_ev.record()

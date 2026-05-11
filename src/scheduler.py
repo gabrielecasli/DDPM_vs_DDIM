@@ -36,7 +36,6 @@ class DDIMScheduler:
         Shape (T,), dtype float64. α_t = ∏_{s≤t}(1−β_s).
     eta : float
         Stochasticity coefficient η ∈ [0, 1].
-        0 → deterministic DDIM; 1 → DDPM ancestral sampling.
     """
 
     def __init__(self, alphas: Tensor, eta: float = 0.0) -> None:
@@ -56,6 +55,7 @@ class DDIMScheduler:
         t: int,
         t_prev: int,
         generator: torch.Generator | None = None,
+        clip_sample: bool = True,
     ) -> Tensor:
         """Perform one reverse step from x_t to x_{t−1}.
 
@@ -72,6 +72,12 @@ class DDIMScheduler:
             to t=0 (fully clean), for which α_{t_prev} = 1.
         generator : torch.Generator or None
             For reproducible stochastic noise (η > 0).
+        clip_sample : bool
+            Clip x̂_0 to [−1, 1] before computing x_{t−1} (default True).
+            Matches ermongroup/ddim and diffusers
+            DDIMScheduler(clip_sample=True). Critical at low NFE (large Δt)
+            where x̂_0 predictions can be far out of range; without clipping
+            FID degrades significantly.
 
         Returns
         -------
@@ -85,7 +91,7 @@ class DDIMScheduler:
         device = x_t.device
         dtype = x_t.dtype
 
-        # α_t — cumulative product at current step (Song et al. 2020, Eq. 4)
+        # α_t — cumulative product at current step
         alpha_t = self.alphas[t].to(device)
 
         # α_{t−1} — cumulative product at previous step
@@ -95,13 +101,17 @@ class DDIMScheduler:
         else:
             alpha_t_prev = self.alphas[t_prev].to(device)
 
-        # ── Eq. 9: predicted x_0 from the model output ──────────────────
+        #  Eq. 9: predicted x_0 from the model output 
         # x̂_0 = (x_t − sqrt(1 − α_t) · ε_θ) / sqrt(α_t)
         sqrt_alpha_t = alpha_t.sqrt()
         sqrt_one_minus_alpha_t = (1.0 - alpha_t).sqrt()
         x0_pred = (x_t.double() - sqrt_one_minus_alpha_t * eps.double()) / sqrt_alpha_t
 
-        # ── Eq. 12: σ_t(η) ──────────────────────────────────────────────
+        if clip_sample:
+            x0_pred = x0_pred.clamp(-1.0, 1.0)
+            eps = (x_t.double() - sqrt_alpha_t * x0_pred) / sqrt_one_minus_alpha_t           # adjusting to respect the equivalence
+
+        #  Eq. 12: σ_t(η) 
         # σ_t = η · sqrt((1−α_{t−1})/(1−α_t)) · sqrt(1 − α_t/α_{t−1})
         #
         # The second sqrt equals sqrt(β̃_t) when η=1, reproducing DDPM.
@@ -110,11 +120,11 @@ class DDIMScheduler:
         sigma_sq = self.eta ** 2 * ratio * (1.0 - alpha_t / alpha_t_prev)  # σ_t²
         sigma = sigma_sq.clamp(min=0.0).sqrt()
 
-        # ── Eq. 12: "direction pointing to x_t" coefficient ─────────────
+        #  Eq. 12: "direction pointing to x_t" coefficient ─
         # sqrt(1 − α_{t−1} − σ_t²)  (must be ≥ 0; clamp for numerical safety)
         dir_coeff = (1.0 - alpha_t_prev - sigma_sq).clamp(min=0.0).sqrt()
 
-        # ── Eq. 12: assemble x_{t−1} ────────────────────────────────────
+        #  Eq. 12: assemble x_{t−1} 
         # x_{t−1} = sqrt(α_{t−1}) · x̂_0
         #          + sqrt(1−α_{t−1}−σ_t²) · ε_θ
         #          + σ_t · z

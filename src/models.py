@@ -8,7 +8,7 @@ Supported model IDs / shorthands
 ---------------------------------
 "cifar10"  → official DDPM EMA weights (Song et al. 2020 Table 1 reference point).
              Auto-downloaded from VainF/Diff-Pruning on first use; cached in
-             weights/ddpm_ema_cifar10/.  See _ensure_cifar10_ema() for details.
+             weights/ddpm_ema_cifar10/.
 "church"   → google/ddpm-ema-church-256   (LSUN Church 256×256)
 "bedroom"  → google/ddpm-ema-bedroom-256  (LSUN Bedroom 256×256)
 
@@ -18,21 +18,10 @@ Checkpoint formats and the subfolder parameter
 ----------------------------------------------
 diffusers stores models in two different layouts on disk / on HuggingFace:
 
-  1. **Standalone model format** (used by Google's checkpoints):
-       <repo_root>/config.json          ← UNet2DModel config
-       <repo_root>/diffusion_pytorch_model.safetensors
-     Load with: UNet2DModel.from_pretrained(hf_id)   # no subfolder
+  1. **Standalone model format** (used by Google's checkpoints)
 
   2. **Pipeline format** (used by the VainF CIFAR-10 EMA checkpoint):
-       <repo_root>/model_index.json     ← DDPMPipeline manifest
-       <repo_root>/unet/config.json     ← UNet2DModel config
-       <repo_root>/unet/diffusion_pytorch_model.bin
-       <repo_root>/scheduler/scheduler_config.json
      Load with: UNet2DModel.from_pretrained(path, subfolder="unet")
-
-Passing subfolder="unet" to a standalone model raises:
-  OSError: ... does not appear to have a file named config.json
-because there is no unet/ subdirectory to look in.
 
 References
 ----------
@@ -50,7 +39,7 @@ from urllib.request import urlopen
 import torch
 from torch import Tensor
 
-# ── CIFAR-10 EMA checkpoint (VainF conversion of the official Ho et al. weights) ──
+#  CIFAR-10 EMA checkpoint (VainF conversion of the official Ho et al. weights) 
 
 _CIFAR10_EMA_URL = (
     "https://github.com/VainF/Diff-Pruning/releases/download/v0.0.1/ddpm_ema_cifar10.zip"
@@ -104,9 +93,6 @@ def _ensure_cifar10_ema() -> Path:
     print(f"Checkpoint extracted to {_CIFAR10_EMA_DIR}")
     return _CIFAR10_EMA_DIR
 
-
-# ── Model registry ──────────────────────────────────────────────────────────────
-
 # subfolder=None  → standalone model format (load from HF directly)
 # subfolder="unet" → pipeline format (weights live in unet/ subdirectory)
 _MODEL_REGISTRY: dict[str, tuple[str, str | None]] = {
@@ -119,8 +105,6 @@ _MODEL_REGISTRY: dict[str, tuple[str, str | None]] = {
     "google/ddpm-cifar10":          ("google/ddpm-cifar10", None),
 }
 
-
-# ── Loader ──────────────────────────────────────────────────────────────────────
 
 def load_model(
     model_id: str,
