@@ -82,9 +82,8 @@ The following results were obtained using **3072 samples** (configurable via `co
 | **100** | 12.52 | 12.42 | 12.62 | 13.55 |
 
 *(For reference, see Song et al. 2020, Table 1, 50K samples)*  
-<!-- ![Reference 50k Samples](results/figures/reference_50k.png) -->
 <p align="left">
-  <img src="results/figures/reference_50k.png" width="45%" alt="FID vs NFE" />
+  <img src="results/figures/reference_50k.png" width="55%" alt="FID vs NFE" />
 </p>
 
 #### Key Observations:
