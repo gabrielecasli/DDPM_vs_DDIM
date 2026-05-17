@@ -191,6 +191,3 @@ a subfolder.
 
 3. **Song et al. 2021** — "Score-Based Generative Modeling through Stochastic Differential Equations", ICLR 2021.
    https://arxiv.org/abs/2011.13456
-
-5. **Parmar et al. 2022** — "On Buggy Resizing Libraries and Surprising Subtleties in FID Calculation", CVPR 2022.
-   https://arxiv.org/abs/2104.11222
