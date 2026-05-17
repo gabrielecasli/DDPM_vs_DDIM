@@ -62,8 +62,8 @@ Each notebook can be executed end-to-end to reproduce the experimental results.
 * **Reconstruction:** We take a photograph of a famous physicist (Peter Higgs), add noise, and attempt to reconstruct it using a CelebA-HQ model with both DDIM ($\eta = 1$) and DDPM ($\eta = 1$).
 
 <p align="center">
-  <img src="../results/figures/photo_higgs.png" width="45%" alt="Original Photo" />
-  <img src="../results/figures/01_celebahq_trajectory_nfe10.png" width="45%" alt="Reconstruction Trajectory" />
+  <img src="results/figures/photo_higgs.png" width="45%" alt="Original Photo" />
+  <img src="results/figures/01_celebahq_trajectory_nfe10.png" width="45%" alt="Reconstruction Trajectory" />
 </p>
 
 ---
@@ -82,7 +82,7 @@ The following results were obtained using **3072 samples** (configurable via `co
 | **100** | 12.52 | 12.42 | 12.62 | 13.55 |
 
 *(For reference, see Song et al. 2020, Table 1, 50K samples)*  
-![Reference 50k Samples](../results/figures/reference_50k.png)
+![Reference 50k Samples](results/figures/reference_50k.png)
 
 #### Key Observations:
 * **Low NFE Regime (10–20):** $\eta=0$ (DDIM) strictly dominates. At NFE=10, $\eta=0$ achieves an FID $\approx$ 20-24, while $\eta=1$ (DDPM) yields an FID $\approx$ 47-52 (roughly 2× worse). Deterministic sampling is significantly more efficient here.
@@ -91,8 +91,8 @@ The following results were obtained using **3072 samples** (configurable via `co
 #### Performance and Pareto Efficiency
 
 <p align="center">
-  <img src="../results/figures/02_fid_vs_nfe.png" width="45%" alt="FID vs NFE" />
-  <img src="../results/figures/02_pareto_fid_time.png" width="45%" alt="Pareto Plot: FID vs Time" />
+  <img src="results/figures/02_fid_vs_nfe.png" width="45%" alt="FID vs NFE" />
+  <img src="results/figures/02_pareto_fid_time.png" width="45%" alt="Pareto Plot: FID vs Time" />
 </p>
 
 > **Hardware Note:** For $\eta = 1$ and NFE = 10, we recorded an unusually high execution time. This anomaly is likely due to hardware thermal throttling during that specific run.
@@ -110,7 +110,7 @@ $$x_t = \sqrt{\frac{\alpha_t}{\alpha_{t-1}}} \cdot x_{t-1} + \sqrt{1 - \alpha_t}
 
 Equivalently, this acts as an explicit Euler method on the probability-flow ODE in the forward (increasing $t$) direction. The approximation inherently improves with more steps. Below is the inversion of 4 real CIFAR-10 training images to $x_T$, followed by their resampling:
 
-![DDIM Inversion on CIFAR-10](../results/figures/03_inversion_cifar10.png)
+![DDIM Inversion on CIFAR-10](results/figures/03_inversion_cifar10.png)
 
 #### SLERP Interpolation (LSUN Bedroom 256×256)
 By sampling two latents $z_1, z_2 \sim \mathcal{N}(0,I)$ and interpolating between them via Spherical Linear Interpolation (SLERP), we reproduce Fig. 8 of Song et al. 2020. The semantic content transitions smoothly because the DDIM ($\eta=0$) process acts as a continuous, invertible mapping.
@@ -119,7 +119,7 @@ By sampling two latents $z_1, z_2 \sim \mathcal{N}(0,I)$ and interpolating betwe
 
 $$\text{slerp}(z_1, z_2, \alpha) = \frac{\sin((1-\alpha)\theta)}{\sin(\theta)} \cdot z_1 + \frac{\sin(\alpha\theta)}{\sin(\theta)} \cdot z_2$$
 
-![SLERP Interpolation](../results/figures/03_slerp_bedroom.png)
+![SLERP Interpolation](results/figures/03_slerp_bedroom.png)
 ---
 
 ## Notes on FID computation
