@@ -50,26 +50,76 @@ jupyter nbconvert --to notebook --execute notebooks/03_inversion_and_interpolati
 
 ---
 
-## Obtained FID on CIFAR-10
+## Reproducing Results
 
-The following results were obtained using **3072 samples** (configurable via `configs/cifar10.yaml: sampling.num_samples_fid`). 
+Each notebook can be executed end-to-end to reproduce the experimental results.
 
-*Note on FID deviation:* Because we evaluate on ~3.1K samples instead of the 50K used in the reference paper (Song et al. 2020), our absolute FID scores are systematically higher due to sample-size bias. However, statistical evaluation (Spearman rank correlation) confirms that the performance dynamics across NFE and η closely match the original paper.
+### Notebook 1: Foundations and Sanity Checks
 
-**Our Obtained Results (3.1K samples):**
+* **Equivalence:** We verify that our implemented DDIM with $\eta = 1$ exactly corresponds to `DiffusersDDPM`.
+* **Determinism:** By starting from the same latent $x_T$ and sampling with different seeds, we demonstrate that DDPM yields varying outputs, whereas DDIM ($\eta = 0$) returns the same result (a deterministic process).
+* **Sample Quality:** Generating samples from the LSUN Church dataset at NFE = 10 highlights the stark visual differences between DDPM ($\eta = 1$) and DDIM ($\eta = 0$).
+* **Reconstruction:** We take a photograph of a famous physicist (Peter Higgs), add noise, and attempt to reconstruct it using a CelebA-HQ model with both DDIM ($\eta = 1$) and DDPM ($\eta = 1$).
 
-| NFE | η=0.0 (DDIM) | η=0.2 | η=0.5 | η=1.0 (DDPM) |
+<p align="center">
+  <img src="../results/figures/photo_higgs.png" width="45%" alt="Original Photo" />
+  <img src="../results/figures/01_celebahq_trajectory_nfe10.png" width="45%" alt="Reconstruction Trajectory" />
+</p>
+
+---
+
+### Notebook 2: $\eta \times$ NFE Sweep & FID on CIFAR-10
+
+The following results were obtained using **3072 samples** (configurable via `configs/cifar10.yaml: sampling.num_samples_fid`).
+
+#### FID Results (3.1k Samples): DDIM vs. DDPM
+
+| NFE | $\eta=0.0$ (DDIM) | $\eta=0.2$ | $\eta=0.5$ | $\eta=1.0$ (DDPM) |
 |----:|:---:|:---:|:---:|:---:|
-|  10 | 22.00 | 22.54 | 24.44 | 49.35 |
-|  20 | 15.21 | 15.55 | 15.96 | 25.92 |
-|  50 | 12.97 | 12.97 | 13.38 | 16.13 |
-| 100 | 12.52 | 12.42 | 12.62 | 13.55 |
+|  **10** | 22.00 | 22.54 | 24.44 | 49.35 |
+|  **20** | 15.21 | 15.55 | 15.96 | 25.92 |
+|  **50** | 12.97 | 12.97 | 13.38 | 16.13 |
+| **100** | 12.52 | 12.42 | 12.62 | 13.55 |
 
-**Reference (Song et al. 2020, Table 1, 50K samples):**
-* NFE=10:  η=0.0 → 13.36  |  η=1.0 → 41.07
-* NFE=20:  η=0.0 → 6.84   |  η=1.0 → 18.36
-* NFE=50:  η=0.0 → 4.67   |  η=1.0 → 8.01
-* NFE=100: η=0.0 → 4.16   |  η=1.0 → 5.78
+*(For reference, see Song et al. 2020, Table 1, 50K samples)*  
+![Reference 50k Samples](../results/figures/reference_50k.png)
+
+#### Key Observations:
+* **Low NFE Regime (10–20):** $\eta=0$ (DDIM) strictly dominates. At NFE=10, $\eta=0$ achieves an FID $\approx$ 20-24, while $\eta=1$ (DDPM) yields an FID $\approx$ 47-52 (roughly 2× worse). Deterministic sampling is significantly more efficient here.
+* **Note on FID Deviation:** Because we evaluate on ~3.1K samples instead of the 50K used in the reference paper, our absolute FID scores are systematically higher due to sample-size bias. However, statistical evaluation (Spearman rank correlation) confirms that the performance dynamics across NFE and $\eta$ closely match the original paper.
+
+#### Performance and Pareto Efficiency
+
+<p align="center">
+  <img src="../results/figures/02_fid_vs_nfe.png" width="45%" alt="FID vs NFE" />
+  <img src="../results/figures/02_pareto_fid_time.png" width="45%" alt="Pareto Plot: FID vs Time" />
+</p>
+
+> **Hardware Note:** For $\eta = 1$ and NFE = 10, we recorded an unusually high execution time. This anomaly is likely due to hardware thermal throttling during that specific run.
+
+---
+
+### Notebook 3: Inversion and Interpolation
+
+#### DDIM Inversion
+DDIM inversion exploits the fact that the deterministic ($\eta=0$) sampling process is invertible. We can run the DDIM forward (noise-adding) direction using the learned model $\epsilon_\theta$ to obtain a latent $x_T$, such that running DDIM sampling backward from $x_T$ successfully reconstructs $x_0$.
+
+The forward DDIM step (Song et al. 2020, implicit Eq. 12 reversed, $\eta=0$) is defined as:
+
+$$x_t = \sqrt{\frac{\alpha_t}{\alpha_{t-1}}} \cdot x_{t-1} + \sqrt{1 - \alpha_t} \cdot \left( 1 - \sqrt{ \frac{\alpha_t}{\alpha_{t-1}} \cdot \frac{1-\alpha_{t-1}}{1-\alpha_t} } \right) \cdot \epsilon_\theta(x_{t-1}, t-1)$$
+
+Equivalently, this acts as an explicit Euler method on the probability-flow ODE in the forward (increasing $t$) direction. The approximation inherently improves with more steps. Below is the inversion of 4 real CIFAR-10 training images to $x_T$, followed by their resampling:
+
+![DDIM Inversion on CIFAR-10](../results/figures/03_inversion_cifar10.png)
+
+#### SLERP Interpolation (LSUN Bedroom 256×256)
+By sampling two latents $z_1, z_2 \sim \mathcal{N}(0,I)$ and interpolating between them via Spherical Linear Interpolation (SLERP), we reproduce Fig. 8 of Song et al. 2020. The semantic content transitions smoothly because the DDIM ($\eta=0$) process acts as a continuous, invertible mapping.
+
+**SLERP Formula:**
+
+$$\text{slerp}(z_1, z_2, \alpha) = \frac{\sin((1-\alpha)\theta)}{\sin(\theta)} \cdot z_1 + \frac{\sin(\alpha\theta)}{\sin(\theta)} \cdot z_2$$
+
+![SLERP Interpolation](../results/figures/03_slerp_bedroom.png)
 ---
 
 ## Notes on FID computation

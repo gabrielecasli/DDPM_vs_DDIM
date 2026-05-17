@@ -11,7 +11,6 @@ sampling:
   batch_size: 512
   dtype: float16
   eta_grid: [0.0, 0.2, 0.5, 1.0]
-  # eta_grid: [0.0]
   nfe_grid: [10, 20, 50, 100]
   tau_kind: quadratic
 fid:
