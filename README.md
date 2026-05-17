@@ -50,9 +50,7 @@ jupyter nbconvert --to notebook --execute notebooks/03_inversion_and_interpolati
 
 ---
 
-## Reproducing Results
-
-Each notebook can be executed end-to-end to reproduce the experimental results.
+## Results
 
 ### Notebook 1: Foundations and Sanity Checks
 
@@ -74,7 +72,7 @@ The following results were obtained using **3072 samples** (configurable via `co
 
 #### FID Results (3.1k Samples): DDIM vs. DDPM
 
-| | **10** | **20** | **50** | **100** |
+| NFE | **10** | **20** | **50** | **100** |
 |:---|:---:|:---:|:---:|:---:|
 | **$\eta=0.0$ (DDIM)** | 22.00 | 15.21 | 12.97 | 12.52 |
 | **$\eta=0.2$** | 22.54 | 15.55 | 12.97 | 12.42 |
