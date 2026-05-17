@@ -1,4 +1,4 @@
-# ddim-from-ddpm
+# DDIM from DDPM
 
 Reproduction of **DDPM** (Ho et al. 2020, NeurIPS 2020) and **DDIM** (Song et al. 2020, ICLR 2021)
 from pretrained DDPM weights. 
