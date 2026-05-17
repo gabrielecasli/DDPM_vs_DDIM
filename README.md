@@ -61,7 +61,7 @@ jupyter nbconvert --to notebook --execute notebooks/03_inversion_and_interpolati
 
 <p align="center">
   <img src="results/figures/01_celebahq_trajectory_nfe10.png" width="80%" alt="Reconstruction Trajectory" />
-  <img src="results/figures/photo_higgs.png" width="15%" alt="Original Photo" />
+  <img src="results/figures/photo_higgs.png" width="16%" alt="Original Photo" />
 </p>
 
 ---
