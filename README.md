@@ -62,8 +62,8 @@ Each notebook can be executed end-to-end to reproduce the experimental results.
 * **Reconstruction:** We take a photograph of a famous physicist (Peter Higgs), add noise, and attempt to reconstruct it using a CelebA-HQ model with both DDIM ($\eta = 1$) and DDPM ($\eta = 1$).
 
 <p align="center">
-  <img src="results/figures/photo_higgs.png" width="10%" alt="Original Photo" />
   <img src="results/figures/01_celebahq_trajectory_nfe10.png" width="80%" alt="Reconstruction Trajectory" />
+  <img src="results/figures/photo_higgs.png" width="15%" alt="Original Photo" />
 </p>
 
 ---
