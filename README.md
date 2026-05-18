@@ -39,7 +39,7 @@ Each notebook can be executed end-to-end:
 
 ```bash
 # Notebook 1: sanity checks, noise schedule, DDIM vs DDPM at fixed seed
-jupyter nbconvert --to notebook --execute notebooks/01_foundations_and_sanity.ipynb
+jupyter nbconvert --to notebook --execute notebooks/01_foundations.ipynb
 
 # Notebook 2: η × NFE sweep, FID table, Pareto plots (LONG TO RUN!! check parameters in configs)
 jupyter nbconvert --to notebook --execute notebooks/02_eta_nfe_sweep.ipynb
